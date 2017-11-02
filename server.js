@@ -16,24 +16,85 @@ const server = express()
 // Create the WebSockets server
 const wss = new SocketServer({ server });
 
+let counter = 0;
+
 // Set up a callback that will run when a client connects to the server
 // When a client connects they are assigned a socket, represented by
 // the ws parameter in the callback.
 wss.on('connection', (ws) => {
   console.log('Client connected');
+  _increamentUser();
 
   ws.on('message', function incoming(message) {
+    console.log('Receive:', message);
     let msg = JSON.parse(message);
-    console.log('received: %s', `User ${msg.username} said ${msg.content}`);
-    msg.id = uuid.v1();
-    // Broadcast to everyone.
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(msg));
-      }
-    });
+    switch(msg.type) {
+      case "postNotification":
+        _postNotification(msg);
+        break;
+      case "postMessage":
+        _postMessage(msg);
+        break;
+      default:
+        console.error("Unknown event type " + msg.type);
+    }
   });
 
   // Set up a callback for when a client closes the socket. This usually means they closed their browser.
-  ws.on('close', () => console.log('Client disconnected'));
+  ws.on('close', () => {
+    console.log('Client disconnected');
+    _decreamentUser();
+  });
 });
+
+// Broadcast to everyone.
+_broadcase = (msg) => {
+  console.log('Broadcast:', msg);
+  wss.clients.forEach(function each(client) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(msg);
+    }
+  });
+}
+
+_increamentUser = () => {
+  counter++;
+  let newCount = {
+    type: "incomingCounter",
+    data: counter
+  }
+  _broadcase(JSON.stringify(newCount));
+}
+
+_decreamentUser = () => {
+  counter--;
+  let newCount = {
+    type: "incomingCounter",
+    data: counter
+  }
+  _broadcase(JSON.stringify(newCount));
+}
+
+_postNotification = (msg) => {
+  let newNoti = {
+    type: "incomingNotification",
+    data: {
+      id: uuid.va(),
+      prevName: msg.data.prevName,
+      newName: msg.data.newName
+    }
+  }
+  _broadcase(JSON.stringify(newNoti));
+}
+
+_postMessage = (msg) => {
+  let newMsg = {
+    type: "incomingMessage",
+    data: {
+      id: uuid.v1(),
+      username: msg.data.username,
+      content: msg.data.content
+    }
+  };
+  _broadcase(JSON.stringify(newMsg));
+}

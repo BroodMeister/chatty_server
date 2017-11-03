@@ -2,7 +2,7 @@
 const express       = require('express');
 const WebSocket     = require('ws');
 const SocketServer  = WebSocket.Server;
-const uuid          = require('node-uuid');
+const uuid          = require('uuid');
 
 // Set the port to 3001
 const PORT = 3001;

@@ -2,7 +2,7 @@
 const express       = require('express');
 const WebSocket     = require('ws');
 const SocketServer  = WebSocket.Server;
-const uuid          = require('uuid');
+const uuid          = require('node-uuid');
 
 // Set the port to 3001
 const PORT = 3001;
@@ -17,6 +17,7 @@ const server = express()
 const wss = new SocketServer({ server });
 
 let counter = 0;
+let totalColors = 4;
 
 // Set up a callback that will run when a client connects to the server
 // When a client connects they are assigned a socket, represented by
@@ -29,11 +30,14 @@ wss.on('connection', (ws) => {
     console.log('Receive:', message);
     let msg = JSON.parse(message);
     switch(msg.type) {
+      case "postRegister":
+        ws.color = `name-${Math.floor(Math.random() * totalColors + 1)}`;
+        break;
       case "postNotification":
-        _postNotification(msg);
+        _incomingNotification(msg);
         break;
       case "postMessage":
-        _postMessage(msg);
+        _incomingMessage(msg, ws.color);
         break;
       default:
         console.error("Unknown event type " + msg.type);
@@ -48,53 +52,54 @@ wss.on('connection', (ws) => {
 });
 
 // Broadcast to everyone.
-_broadcase = (msg) => {
-  console.log('Broadcast:', msg);
+const _broadcase = (res) => {
+  console.log('Broadcast:', res);
   wss.clients.forEach(function each(client) {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(msg);
+      client.send(res);
     }
   });
 }
 
-_increamentUser = () => {
+const _increamentUser = () => {
   counter++;
-  let newCount = {
+  let res = {
     type: "incomingCounter",
     data: counter
   }
-  _broadcase(JSON.stringify(newCount));
+  _broadcase(JSON.stringify(res));
 }
 
-_decreamentUser = () => {
+const _decreamentUser = () => {
   counter--;
-  let newCount = {
+  let res = {
     type: "incomingCounter",
     data: counter
   }
-  _broadcase(JSON.stringify(newCount));
+  _broadcase(JSON.stringify(res));
 }
 
-_postNotification = (msg) => {
-  let newNoti = {
+const _incomingNotification = (msg) => {
+  let res = {
     type: "incomingNotification",
     data: {
-      id: uuid.va(),
+      id: uuid.v1(),
       prevName: msg.data.prevName,
       newName: msg.data.newName
     }
   }
-  _broadcase(JSON.stringify(newNoti));
+  _broadcase(JSON.stringify(res));
 }
 
-_postMessage = (msg) => {
-  let newMsg = {
+const _incomingMessage = (msg, color) => {
+  let res = {
     type: "incomingMessage",
     data: {
       id: uuid.v1(),
       username: msg.data.username,
-      content: msg.data.content
+      content: msg.data.content,
+      color: color
     }
   };
-  _broadcase(JSON.stringify(newMsg));
+  _broadcase(JSON.stringify(res));
 }

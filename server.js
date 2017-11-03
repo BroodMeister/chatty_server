@@ -2,7 +2,7 @@
 const express       = require('express');
 const WebSocket     = require('ws');
 const SocketServer  = WebSocket.Server;
-const uuid          = require('uuid');
+const uuid          = require('node-uuid');
 
 // Set the port to 3001
 const PORT = 3001;
@@ -92,14 +92,40 @@ const _incomingNotification = (msg) => {
 }
 
 const _incomingMessage = (msg, color) => {
+  let regExp = new RegExp(/https?:\/{2}\S+?\.(jpg|png|gif)/gi);
+  let urls = msg.data.content.match(regExp);
+  console.log(urls);
+  msg .data.content = msg.data.content.replace(/[&<>"]/g, (tag) => {
+    let chars = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&#34;',
+      "'": '&#39;',
+      ' ': '$nbsp;'
+    };
+    return chars[tag] || tag;
+  });
   let res = {
     type: "incomingMessage",
     data: {
       id: uuid.v1(),
       username: msg.data.username,
-      content: msg.data.content,
       color: color
     }
   };
+  if (urls) {
+    msg.data.content = _parseURL(msg.data.content, urls);
+  }
+  res.data.content = msg.data.content;
   _broadcase(JSON.stringify(res));
+}
+
+const _parseURL = (content, urls) => {
+  var regExp = new RegExp(urls.join('|'), 'gi');
+  return content.replace(regExp, (chunk) => {
+    if (chunk.match(regExp)) {
+      return `<img src="${chunk}">`;
+    }
+  })
 }

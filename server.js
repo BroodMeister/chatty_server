@@ -19,9 +19,8 @@ const wss = new SocketServer({ server });
 let counter = 0;
 let totalColors = 4;
 
-// Set up a callback that will run when a client connects to the server
-// When a client connects they are assigned a socket, represented by
-// the ws parameter in the callback.
+// A callback that will run when a client connects to the server.
+// A client is represented by the ws parameter when they are assigned a socket.
 wss.on('connection', (ws) => {
   console.log('Client connected');
   _increamentUser();
@@ -31,6 +30,7 @@ wss.on('connection', (ws) => {
     let msg = JSON.parse(message);
     switch(msg.type) {
       case "postRegister":
+        // Randomly generates a class name to display a username in a particular colour.
         ws.color = `name-${Math.floor(Math.random() * totalColors + 1)}`;
         break;
       case "postNotification":
@@ -44,14 +44,14 @@ wss.on('connection', (ws) => {
     }
   });
 
-  // Set up a callback for when a client closes the socket. This usually means they closed their browser.
+  // Sets up a callback in the event that the client closes the socket; usually meaning they closed their browser.
   ws.on('close', () => {
     console.log('Client disconnected');
     _decreamentUser();
   });
 });
 
-// Broadcast to everyone.
+// Broadcasts to everyone.
 const _broadcase = (res) => {
   console.log('Broadcast:', res);
   wss.clients.forEach(function each(client) {
@@ -92,6 +92,7 @@ const _incomingNotification = (msg) => {
 }
 
 const _incomingMessage = (msg, color) => {
+  // Finds all strings that start with http:// or https://, and end with either .jpg, .png, or .gif
   let regExp = new RegExp(/https?:\/{2}\S+?\.(jpg|png|gif)/gi);
   let urls = msg.data.content.match(regExp);
   console.log(urls);
